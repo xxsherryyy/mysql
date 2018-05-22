@@ -1,176 +1,95 @@
-// var mysql = require("mysql");
-// var inquirer = require("inquirer");
-// require("console.table");
-// var connection = mysql.createConnection({
-//     host: "localhost",
-//     port: 3000,
-//     user: "root",
-//     password: "xfire8295",
-//     database: "bamazondb"
-// });
-
-// connection.connect(function(error) {
-//     if (error) {
-//     console.error("connection with id" + error.threadId);
-//     }
-//     // connection.query('SELECT * FROM bamazon', function(error, results, fields) {
-//     //     if(!error) {
-//     //         console.log(results[2].floor)
-//     //         connection.end();
-//     //     };
-//     //     if (error) throw error;
-//         bamazon();
-//     });
-
-
-// function bamazon() {
-//     connection.query ('SELECT * FROM products', function (error, keys) {
-//         if (error) throw error;
-//         console.table(keys)
-//         connection.end();
-//     })
-// }
-
-// Initializes the npm packages used
+//initializeds npm packages
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 
 
 // Initializes the connection variable to sync with a MySQL database
 var connection = mysql.createConnection({
-  host: "localhost",
-  port: 3306,
+    host: "localhost",
+    port: 3306,
 
-  // Your username
-  user: "root",
-
-  // Your password
-  password: "xfire8295",
-  database: "bamazondb"
+    user: "root",
+    password: "",
+    //sql database name
+    database: "bamazondb"
 });
 
-// Creates the connection with the server and loads the product data upon a successful connection
-connection.connect(function(err) {
-  if (err) {
-    console.error("error connecting: " + err.stack);
-  }
-  runSearch();
+// Creates the connection with the server and loads the product data 
+connection.connect(function (err) {
+    connection.query("SELECT * FROM products", function (err, result, fields) {
+        if (err) throw err;
+        console.log(result);
+    });
+    (console.log("Connected as id: " + connection.threadId))
+    runSearch();
 });
 
-var runSearch = function() {
-    inquirer.prompt({
-        name: "search",
-        type: "list",
-        message: "List products"
+//validates input for runSearch prompt
+function validateInput(value) {
+    var integer = Number.isInteger(parseFloat(value));
+    if (integer) {
+        return true;
+    } else
+        return "Please enter a whole number."
+};
+var runSearch = function () {
+    inquirer.prompt([{
+        name: "id",
+        type: "input",
+        validate: validateInput,
+        message: "What product ID would you like to buy?",
+    }]).then(function (answer) {
+
+        var item = answer.id;
+        var quantity = answer.stockQuantity;
+
+        var query = "SELECT * FROM produts WHERE";
+
+        connection.query(queryStr, { id: item }, function (err, data) {
+            if (err) throw err;
+            if (data.length === 0) {
+                console.log("Invalid id");
+                runSearch();
+            }
+            var string = '';
+            for (var i = 0; i < data.length; i++) {
+                string = '';
+                string += 'Item ID: ' + data[i].item_id + '  //  ';
+                string += 'Product Name: ' + data[i].product_name + '  //  ';
+                string += 'Department: ' + data[i].department_name + '  //  ';
+                string += 'Price: $' + data[i].price + '\n';
+
+                console.log(string);
+            }
+
+            console.log("---------------------------------------------------------------------\n");
+
+        }
+        );
+
     })
-}
-// // Function to load the products table from the database and print results to the console
-// function loadProducts() {
-//   // Selects all of the data from the MySQL products table
-//   connection.query("SELECT * FROM products", function(err, res) {
-//     if (err) throw err;
 
-//     // Draw the table in the terminal using the response
-//     console.table(res);
+    inquirer.prompt([{
+        name: "stockQuantity",
+        type: "input",
+        validate: validateInput,
+        message: "How many units?"
+    }]).then(function (answer) {
 
-//     // Then prompt the customer for their choice of product, pass all the products to promptCustomerForItem
-//     promptCustomerForItem(res);
-//   });
-// }
+        var item = answer.id;
+        var quantity = answer.stockQuantity;
 
-// // Prompt the customer for a product ID
-// function promptCustomerForItem(inventory) {
-//   // Prompts user for what they would like to purchase
-//   inquirer
-//     .prompt([
-//       {
-//         type: "input",
-//         name: "choice",
-//         message: "What is the ID of the item you would you like to purchase? [Quit with Q]",
-//         validate: function(val) {
-//           return !isNaN(val) || val.toLowerCase() === "q";
-//         }
-//       }
-//     ])
-//     .then(function(val) {
-//       // Check if the user wants to quit the program
-//       checkIfShouldExit(val.choice);
-//       var choiceId = parseInt(val.choice);
-//       var product = checkInventory(choiceId, inventory);
+        var query = "SELECT * FROM produts WHERE";
 
-//       // If there is a product with the id the user chose, prompt the customer for a desired quantity
-//       if (product) {
-//         // Pass the chosen product to promptCustomerForQuantity
-//         promptCustomerForQuantity(product);
-//       }
-//       else {
-//         // Otherwise let them know the item is not in the inventory, re-run loadProducts
-//         console.log("\nThat item is not in the inventory.");
-//         loadProducts();
-//       }
-//     });
-// }
+        connection.query(queryStr, { id: item }, function (err, data) {
+            if (err) throw err;
+            if (data.length === 0) {
+                console.log("Invalid id");
+                displayInventory();
+            }
+      
 
-// // Prompt the customer for a product quantity
-// function promptCustomerForQuantity(product) {
-//   inquirer
-//     .prompt([
-//       {
-//         type: "input",
-//         name: "quantity",
-//         message: "How many would you like? [Quit with Q]",
-//         validate: function(val) {
-//           return val > 0 || val.toLowerCase() === "q";
-//         }
-//       }
-//     ])
-//     .then(function(val) {
-//       // Check if the user wants to quit the program
-//       checkIfShouldExit(val.quantity);
-//       var quantity = parseInt(val.quantity);
-
-//       // If there isn't enough of the chosen product and quantity, let the user know and re-run loadProducts
-//       if (quantity > product.stock_quantity) {
-//         console.log("\nInsufficient quantity!");
-//         loadProducts();
-//       }
-//       else {
-//         // Otherwise run makePurchase, give it the product information and desired quantity to purchase
-//         makePurchase(product, quantity);
-//       }
-//     });
-// }
-
-// // Purchase the desired quanity of the desired item
-// function makePurchase(product, quantity) {
-//   connection.query(
-//     "UPDATE products SET stock_quantity = stock_quantity - ? WHERE item_id = ?",
-//     [quantity, product.item_id],
-//     function(err, res) {
-//       // Let the user know the purchase was successful, re-run loadProducts
-//       console.log("\nSuccessfully purchased " + quantity + " " + product.product_name + "'s!");
-//       loadProducts();
-//     }
-//   );
-// }
-
-// // Check to see if the product the user chose exists in the inventory
-// function checkInventory(choiceId, inventory) {
-//   for (var i = 0; i < inventory.length; i++) {
-//     if (inventory[i].item_id === choiceId) {
-//       // If a matching product is found, return the product
-//       return inventory[i];
-//     }
-//   }
-//   // Otherwise return null
-//   return null;
-// }
-
-// // Check to see if the user wants to quit the program
-// function checkIfShouldExit(choice) {
-//   if (choice.toLowerCase() === "q") {
-//     // Log a message and exit the current node process
-//     console.log("Goodbye!");
-//     process.exit(0);
-//   }
-// }
+                  }
+                    );
+    })
+         }
